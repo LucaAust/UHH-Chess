@@ -12,6 +12,7 @@ uvicorn = "*"
 mariadb = "*"
 psutil = "*"
 python-chess = "*"
+gunicorn = "*"
 
 [dev-packages]
 

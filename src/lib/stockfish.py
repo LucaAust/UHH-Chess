@@ -1,7 +1,7 @@
 import logging
 import json
 from typing import Any, Tuple, Union
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import Request
@@ -24,6 +24,7 @@ class Stockfish():
         max_user_draw_time: float = 30.0,  engine_options = None) -> None:
 
         self.stop = False
+        self.start = datetime.now()
         self.last_interaction = datetime.now()
         self.engine = chess.engine.SimpleEngine.popen_uci(str(path))
 
@@ -182,7 +183,7 @@ class Stockfish():
         return {
             "outcome": self.board.outcome() or False,
             "move_timeout": await self._get_move_duration() > self.max_user_draw_time + 10,
-            "total_timeout": datetime.now() - self.start > 20 * 60
+            "total_timeout": datetime.now() - self.start > timedelta(minutes=20)
         }
 
     async def check_game_end(self) -> bool:

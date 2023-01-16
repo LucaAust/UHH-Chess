@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseSettings
@@ -26,6 +27,16 @@ app = FastAPI(
     openapi_url=None,
     redoc_url=None,
 )
+
+origins = ['*']
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+) 
 
 src_path = Path().cwd().joinpath('src')
 app.mount("/static", StaticFiles(directory=Path(src_path, 'static')), name="static")

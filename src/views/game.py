@@ -10,6 +10,7 @@ log = logging.getLogger()
 
 @app.get('/', response_class=HTMLResponse)
 async def index(request: Request):
+    return "HELLO"
     return templates.TemplateResponse("index.html", {'request': request})
 
 @app.get('/new/{user_id}/{user_elo}', response_class=HTMLResponse)

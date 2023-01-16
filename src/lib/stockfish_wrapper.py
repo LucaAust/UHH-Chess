@@ -59,7 +59,7 @@ class StockfishWrapper():
             return instance
 
         # crate new instance
-        self.instances[token] = self._new_instance(**game_info)
+        self.instances[token] = await self._new_instance(**game_info)
         return self.instances[token]
 
     async def _get_UCI_params(self, user_elo):
