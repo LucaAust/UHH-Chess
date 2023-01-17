@@ -51,8 +51,28 @@ class Stockfish():
         if engine_options:
             self.engine.configure(engine_options)
 
-        self.load_fen()
+        self._load_existing_game_data()
         log.info(f"Start engine with: {self.__dict__}")
+
+    async def _load_existing_game_data(self):
+        await self.load_fen()
+        await self._load_existing_start_time()
+
+    async def _load_existing_start_time(self):
+        res = await self.sql_conn.query("""
+            SELECT
+                start
+            FROM
+                games
+            WHERE
+                games.id = %(game_id)s
+            """,
+            {'game_id': self.game_id},
+            first=True,
+        )
+
+        if res.get('start'):
+            self.start = res['start']
 
     async def _save_move(self, game_id: str, source: str, target: str, piece: str, old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None) -> None:
 
@@ -245,7 +265,7 @@ class Stockfish():
             WHERE
                 games.id = %(game_id)s
             ORDER BY
-                moves.t_stamp ASC
+                moves.t_stamp ASCGAME_DATA_SAVE_DIR
             """,
             {'game_id': self.game_id}
         )
