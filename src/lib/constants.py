@@ -2,7 +2,7 @@ from pathlib import Path
 
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
-GAME_DATA_SAVE_DIR = Path().cwd() / "game_data"
+GAME_DATA_SAVE_DIR: Path = Path().cwd() / "game_data"
 GAME_DATA_SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
 class Color:

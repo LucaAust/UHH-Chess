@@ -10,7 +10,7 @@ from pydantic import BaseSettings
 
 from src.lib.astl_logger import AstlLogger
 from src.lib.sql import SQL
-
+from src.lib import constants
 
 class Settings(BaseSettings):
     openapi_url: str = None
@@ -43,9 +43,15 @@ app.mount("/static", StaticFiles(directory=Path(src_path, 'static')), name="stat
 
 templates = Jinja2Templates(directory=Path(src_path, 'templates'))
 
+try:
+    constants.GAME_DATA_SAVE_DIR = Path(config['game']['data_save_dir'])
+    constants.GAME_DATA_SAVE_DIR.mkdir(parents=True, exist_ok=True)
+    log.info(f"Game data output director: {constants.GAME_DATA_SAVE_DIR.absolute()}")
+except Exception:
+    pass
+
 # can only secure if a fqdn is available
 SECURE_COOKIE = True
-
 try:
     SECURE_COOKIE = config['cookie']['secure']
 except Exception:
