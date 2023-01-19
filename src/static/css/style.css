@@ -319,26 +319,60 @@
 }
 
 html, body {
+  min-height: 100vh;
   margin: 0;
   padding: 0;
-  background-color: rgb(23, 23, 27);
+  background-color: #1d2026;
   color: white;
   font-family: Helvetica, sans-serif, Arial;
 }
+
+html a, body a {
+  color: #8A94A7;
+  text-decoration: none;
+}
+
+html .start-container, body .start-container {
+  width: 50%;
+  margin: auto;
+  text-align: center;
+}
+
+html .start-container-inner, body .start-container-inner {
+  margin-top: 33%;
+}
+
 html #redirect_error, body #redirect_error {
   margin: 5rem auto;
+  font-size: 1.5em;
   display: none;
   width: 50%;
   text-align: center;
 }
+
 html #chess-board, body #chess-board {
   margin: auto;
 }
+
 html #countdown, body #countdown {
   font-size: 5rem;
   padding: 0;
   margin: 0;
 }
+
 html .red, body .red {
-  color: rgb(207, 82, 82) !important;
-}/*# sourceMappingURL=style.css.map */
+  color: #cf5252 !important;
+}
+
+html #footer, body #footer {
+  text-align: center;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 2.5rem;
+}
+
+html #footer a, body #footer a {
+  margin: auto 1rem;
+}
+/*# sourceMappingURL=style.css.map */

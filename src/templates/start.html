@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="start-container">
+    <div class="start-container-inner">
+        <p>Mit einem Klick auf den Start Button stimmen Sie zu das Ihre Spieldaten anonym zu Studienzwecken verwendet werden dürfen.</p>
+        <button class="pure-button pure-button-primary mt-3" onclick="location.href='/new/{{ user_id }}/{{ user_elo }}'" type="button">Start</button>
+    </div>
+
+</div>
+{% endblock %}

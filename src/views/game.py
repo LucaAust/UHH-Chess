@@ -8,10 +8,12 @@ from src.views.auth import token_required
 log = logging.getLogger()
 
 
-@app.get('/', response_class=HTMLResponse)
-async def index(request: Request):
-    return "HELLO"
-    return templates.TemplateResponse("index.html", {'request': request})
+@app.get('/start/{user_id}/{user_elo}', response_class=HTMLResponse)
+async def index(request: Request, user_id: str, user_elo: int):
+    return templates.TemplateResponse(
+        "start.html", 
+        {'request': request, 'user_id': user_id, 'user_elo':user_elo}
+    )
 
 @app.get('/new/{user_id}/{user_elo}', response_class=HTMLResponse)
 async def new_game(request: Request, user_id: str, user_elo: int):
@@ -29,7 +31,7 @@ async def game(request: Request, token: str, game_id: int = 0):
     db_fen = await game.load_fen(set_fen=False)
     log.debug(f"game.get_db_fen(): {db_fen}")
 
-    res = templates.TemplateResponse("index.html", {'request': request, 'fen': db_fen})
+    res = templates.TemplateResponse("game.html", {'request': request, 'fen': db_fen})
     res.set_cookie('token', token, secure=False)
 
     return res

@@ -1,0 +1,33 @@
+
+{% extends "base.html" %}
+
+{% block head %}
+<script>var current_fen = "{{ fen }}";</script>
+<script src="{{ url_for('static', path='lib/jquery-3.6.1.min.js') }}"></script>
+<script src="{{ url_for('static', path='lib/js.cookie.min.js') }}"></script>
+{% endblock %}
+
+{% block body %}
+<p id="redirect_error" class="red">Failed to redirect!</p>
+<section class="pure-g mt-10">
+    <div class="pure-u-1-3"> </div>
+    <div class="pure-u-1-3">
+        <div id="chess-board" style="width: 33.33rem"></div>
+    </div>
+    <div class="pure-u-1-3">
+        <div class="pure-u-1-3"></div>
+        <div class="pure-u-1-3"><p id="countdown"></p></div>
+        <div class="pure-u-1-3"></div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block after_body%}
+<script type="module" src="{{ url_for('static', path='lib/chess.js-0.13.4/chess.js') }}"></script>
+<!-- chessboard.js -->
+<link rel="stylesheet" href="{{ url_for('static', path='lib/chessboardjs-1.0.0/css/chessboard-1.0.0.min.css') }}">
+<script src="{{ url_for('static', path='lib/chessboardjs-1.0.0/js/chessboard-1.0.0.js') }}"></script>
+<script src="{{ url_for('static', path='js/api.js') }}"></script>
+<script type="module" src="{{ url_for('static', path='js/game.js') }}"></script>
+{% endblock %}

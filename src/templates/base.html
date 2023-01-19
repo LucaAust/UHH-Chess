@@ -1,0 +1,42 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Chess</title>
+  <meta name="description" content="Chess Game">
+  <meta name="author" content="Luca Austelat">
+
+  <meta property="og:title" content="Chess">
+  <meta property="og:type" content="website">
+  <meta property="og:description" content="A Stockfish chess game">
+
+  <link rel="icon" href="/favicon.ico">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@2.1.0/build/pure-min.css" integrity="sha384-yHIFVG6ClnONEA5yB5DJXfW2/KC173DIQrYoZMEtBvGzmf0PKiGyNEqe9N6BNDBH" crossorigin="anonymous">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/normalize.css') }}">
+  {% block head %}
+
+  {% endblock %}
+
+</head>
+
+<body>
+  {% block body %}
+  {% endblock %}
+
+    <footer id="footer">
+            <a href="https://austelat.de/datenschutz.html">Datenschutz</a>
+            <a href="https://austelat.de/impressum.html">Impressum</a>
+    </footer>
+</body>
+
+{% block after_body%}
+{% endblock %}
+
+</html>
