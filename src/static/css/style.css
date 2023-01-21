@@ -366,7 +366,7 @@ html .red, body .red {
 
 html #footer, body #footer {
   text-align: center;
-  position: absolute;
+  margin-top: 3rem;
   bottom: 0;
   width: 100%;
   height: 2.5rem;
