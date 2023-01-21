@@ -17,9 +17,13 @@ async def index(request: Request, user_id: str, user_elo: int):
 
 @app.get('/new/{user_id}/{user_elo}', response_class=HTMLResponse)
 async def new_game(request: Request, user_id: str, user_elo: int):
-    res = await stockfish_instances.new(user_elo, user_id)
-    log.debug(f"Created new game: {res}")
-    return RedirectResponse(url=f"/game/{res.token}")
+    game = await stockfish_instances.new(user_elo, user_id)
+    log.debug(f"Created new game: {game}")
+
+    token = game.token
+    
+    await game.close()
+    return RedirectResponse(url=f"/game/{token}")
 
 
 @app.get('/game/{token}', response_class=HTMLResponse)
@@ -28,8 +32,10 @@ async def game(request: Request, token: str, game_id: int = 0):
     log.debug(f"get game with id: {game_id}")
     game = await stockfish_instances.get(token)
 
-    db_fen = await game.load_fen(set_fen=False)
-    log.debug(f"game.get_db_fen(): {db_fen}")
+    db_fen = game.board.fen()
+    log.debug(f"game.board.gen(): {db_fen}")
+
+    await game.close()
 
     res = templates.TemplateResponse("game.html", {'request': request, 'fen': db_fen})
     res.set_cookie('token', token, secure=False)
@@ -42,5 +48,7 @@ async def game(request: Request, token: str, game_id: int = 0):
 async def move(request: Request, token: str, game_id: int = 0):
     game = await stockfish_instances.get(token)
     # log.debug(game.get_board_visual())
-    return await game.move(request, game_id)
+    move = await game.move(request, game_id)
+    await game.close()
+    return move
 

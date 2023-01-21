@@ -55,20 +55,22 @@ class StockfishWrapper():
             return None
 
         # return existing instance
-        if instance := self.instances.get(token, False):
-            return instance
+        #if instance := self.instances.get(token, False):
+        #    return instance
 
         # crate new instance
-        self.instances[token] = await self._new_instance(**game_info)
-        return self.instances[token]
+        # self.instances[token] = await self._new_instance(**game_info)
+        #return self.instances[token]
+
+        return await self._new_instance(**game_info)
 
     async def _get_UCI_params(self, user_elo):
         elo = user_elo + self.add_elo_points
         if elo < 1349:
-            log.info(f"Target ELO '{elo}' is to small!")
+            log.info(f"Target ELO '{elo}' is to small! Auto set to 1350")
             elo = 1350
         elif elo > 2850:
-            log.info(f"Target ELO '{elo}' is to large!")
+            log.info(f"Target ELO '{elo}' is to large! Auto set to 2850")
             elo = 2850
 
         return {
@@ -82,7 +84,7 @@ class StockfishWrapper():
     async def _new_instance(self, token: str, game_id: int, user_elo: int):
         await self.check_ram()
 
-        return Stockfish(
+        return await Stockfish(
             str(self.stockfish_path),
             token=token,
             sql_conn=self.sql_conn,
@@ -116,9 +118,10 @@ class StockfishWrapper():
         if not res:
             raise Exception(f"Could not create new game!")
 
-        await self._clear_instances()
+        # await self._clear_instances()
 
         print(res)
-        self.instances[res['token']] = await self._new_instance(**res)
+        ## self.instances[res['token']] = await self._new_instance(**res)
 
-        return self.instances[res['token']]
+        # return self.instances[res['token']]
+        return await self._new_instance(**res)

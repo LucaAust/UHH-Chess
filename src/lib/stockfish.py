@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import Any, Tuple, Union
+from typing import Any, Tuple, Union, List
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -19,7 +19,7 @@ log = logging.getLogger()
 
 
 class Stockfish():
-    def __init__(self, path: str, token: str, sql_conn: SQL, game_id: int, 
+    async def __init__(self, path: str, token: str, sql_conn: SQL, game_id: int, 
         depth: int = 20, nodes: int = None, redirect_to: Union[str, None] = None,
         max_user_draw_time: float = 30.0,  engine_options = None) -> None:
 
@@ -45,14 +45,22 @@ class Stockfish():
         #  make shure the white player starts
         if self.board.turn == BLACK:
             self.chess.Move.null()
-            self.board
 
         # set UCI settings
         if engine_options:
             self.engine.configure(engine_options)
 
-        self._load_existing_game_data()
+        await self._load_existing_game_data()
         log.info(f"Start engine with: {self.__dict__}")
+
+    async def close(self):
+        if self.engine:
+            self.engine.close()
+
+    async def __new__(cls, *a, **kw):
+        instance = super().__new__(cls)
+        await instance.__init__(*a, **kw)
+        return instance
 
     async def _load_existing_game_data(self):
         await self.load_fen()
@@ -112,15 +120,20 @@ class Stockfish():
             WHERE
                 games.token = %(token)s
             ORDER BY
-                moves.t_stamp DESC;
+                moves.t_stamp ASC;
         """, 
         {'token': self.token}
         )
         log.debug(f"res: {res}")
 
-        moves: Tuple[chess.Move] = []
+        moves: List[chess.Move] = []
         for entry in res:
-            moves.append(chess.Move(entry['source'], entry['target']))
+            moves.append(
+                chess.Move(
+                    chess.parse_square(entry['source']),
+                    chess.parse_square(entry['target'])
+                )
+            )
             
         return moves
 
@@ -161,12 +174,21 @@ class Stockfish():
         )
 
         log.debug(f"res: {res}")
+        self.board = chess.Board()
+
+        #  make shure the white player starts
+        print(f"Black turn: {self.board.turn == BLACK}")
+        if self.board.turn == BLACK:
+            self.chess.Move.null()
+
         if fen := res.get('new_fen'):
             if set_fen:
                 # do each move to detect some end rules
-                for curr_move in [await self._get_all_moves()]:
-                    self.baord.move(curr_move)
-                self.engine.position(self.board)
+                for curr_move in await self._get_all_moves():
+                    print(curr_move)
+                    self.board.push(curr_move)
+
+                    print(self.board)
             return fen
 
         return ""
@@ -221,6 +243,7 @@ class Stockfish():
         log.debug(f"self.board.outcome(): {self.board.outcome()}")
 
         outcome = self.board.outcome()
+        log.debug(f"outcome: {outcome}")
         args = {
             'end_reasons': outcome.termination.name if outcome else self.end_reason,
             'winner': COLOR_NAMES[outcome.winner] if outcome else "",
@@ -251,7 +274,7 @@ class Stockfish():
             SELECT
                 start, stop,
                 user_elo, ki_elo,
-                user_id, end_reasons
+                user_id, end_reasons,
                 winning_color,
                 source, target,
                 new_fen, old_fen,
@@ -265,10 +288,13 @@ class Stockfish():
             WHERE
                 games.id = %(game_id)s
             ORDER BY
-                moves.t_stamp ASCGAME_DATA_SAVE_DIR
+                moves.t_stamp ASC
             """,
             {'game_id': self.game_id}
         )
+
+        if not GAME_DATA_SAVE_DIR.exists():
+            GAME_DATA_SAVE_DIR.mkdir(parents=True)
 
         file_path = GAME_DATA_SAVE_DIR  / f"{game_data[-1]['user_id']}_{self.game_id}_{self.token}.json"
         log.info(f"Save game data to: {file_path.absolute()}")
@@ -297,6 +323,7 @@ class Stockfish():
         Returns:
             dict: KI move, game end.
         """
+        print(self.board)
         self.last_interaction = datetime.now()
         data = (await request.json()).get('data')
         log.debug(f"data: {data}")
