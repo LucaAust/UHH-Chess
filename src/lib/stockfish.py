@@ -1,5 +1,6 @@
 import logging
 import json
+import traceback
 from typing import Any, Tuple, Union, List
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -299,8 +300,12 @@ class Stockfish():
         file_path = GAME_DATA_SAVE_DIR  / f"{game_data[-1]['user_id']}_{self.game_id}_{self.token}.json"
         log.info(f"Save game data to: {file_path.absolute()}")
 
-        with open(file_path, 'w+') as file:
-            json.dump(game_data, file, indent=4, ensure_ascii=False, default=json_serial)
+        try:
+            with open(file_path, 'w+') as file:
+                json.dump(game_data, file, indent=4, ensure_ascii=False, default=json_serial)
+        except Exception:
+            log.exception(traceback.format_exc())
+            log.exception(f"Save game data Failed! Token: {self.token}")
 
     async def _ki_move(self) -> Tuple[chess.Move, bool]:
         """Run KI move.
