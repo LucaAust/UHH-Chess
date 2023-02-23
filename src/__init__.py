@@ -20,7 +20,12 @@ config = configparser.ConfigParser()
 config.read('settings.ini')
 
 print(f"config['log']['log_to_stdout']: {config['log']['log_to_stdout']}")
-AstlLogger(Path(), config['log'].getint('level'), config['log'].getboolean('log_to_stdout'))
+AstlLogger(
+    Path(),
+    config['log'].getint('level', 40),
+    config['log'].getboolean('log_to_stdout', False),
+    config['log'].getint('backup_count', 7),
+)
 log = logging.getLogger()
 
 app = FastAPI(
