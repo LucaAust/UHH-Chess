@@ -1,18 +1,21 @@
 import logging
-from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
+from typing import Union
+from logging.handlers import TimedRotatingFileHandler
 
 
 class AstlLogger:
-    def __init__(self, log_dir: Path, loglevel: int, log_to_stdout: bool = False):
+    def __init__(self, log_dir: Path, loglevel: int, log_to_stdout: bool = False, log_backup_count: Union[int, None] = 7):
         self.log_dir = log_dir / 'log'
         self.log_level = loglevel
         self.log_name = str(log_dir.absolute().name).replace(' ', '_')
         self.log_to_stdout = log_to_stdout
+        self.log_backup_count = log_backup_count
         
         self.__setup_logger()
 
     def __setup_logger(self):
+        print(f"self.log_backup_count: {self.log_backup_count}")
         logger = logging.getLogger()
         logger.setLevel(self.log_level)
         log_formatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s] [%(filename)s:%(lineno)s] [%(funcName)s()] %(message)s")
@@ -32,14 +35,14 @@ class AstlLogger:
         print(self.log_dir / f"{self.log_name}.log")
         # add default log with file rotation
         file_handler = TimedRotatingFileHandler(
-            filename=self.log_dir / f"{self.log_name}.log", when='midnight', backupCount=7)
+            filename=self.log_dir / f"{self.log_name}.log", when='midnight', backupCount=self.log_backup_count)
         file_handler.setFormatter(log_formatter)
         file_handler.setLevel(self.log_level)
         logger.addHandler(file_handler)
                 
         # add error log
         error_file_handler = TimedRotatingFileHandler(
-            filename=self.log_dir / f'{self.log_name}_error.log', when='midnight', backupCount=7)
+            filename=self.log_dir / f'{self.log_name}_error.log', when='midnight', backupCount=self.log_backup_count)
         error_file_handler.setFormatter(log_formatter)
         error_file_handler.setLevel(logging.ERROR)
         logger.addHandler(error_file_handler)
