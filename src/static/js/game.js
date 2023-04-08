@@ -175,11 +175,12 @@ function create_countdown(){
 function countdown() {
     if (curr_countdown_time <= 10){
         countdown_elem.classList.add('red');
+    }else{
+        countdown_elem.classList.remove('red');
     }
 
     if (curr_countdown_time == -1) {
         clearInterval(countdown_id);
-        countdown_elem.classList.remove('red');
     } else {
         countdown_elem.innerHTML = curr_countdown_time;
         curr_countdown_time--;
