@@ -224,7 +224,7 @@ class Stockfish():
     async def _check_game_end(self):
         self.end_reason = "Max game time (20min) reached!"
         return {
-            "outcome": self.board.outcome() or False,
+            "outcome": self.board.is_game_over(),
             "move_timeout": await self._get_move_duration() > self.max_user_draw_time + 10,
             "total_timeout": datetime.now() - self.start > timedelta(minutes=20)
         }
