@@ -7,6 +7,7 @@ var countdown_id;
 var countdown_time = 30;
 var curr_countdown_time = 30;
 var curr_redirect_countdown_time = 10;
+var game_ended = false;
 var game = new chessjs.Chess(current_fen || chessjs.DEFAULT_POSITION);
 
 
@@ -64,14 +65,17 @@ function updateStatus(game){
 }
 
 function onDragStart(source, piece, position, orientation) {
-    // disable black side moving
-    return !((orientation === 'white' && piece.search(/^w/) === -1) ||
-                (orientation === 'black' && piece.search(/^b/) === -1));
+    // disable black side moving and after game end
+    return !(
+        (orientation === 'white' && piece.search(/^w/) === -1) ||
+        (orientation === 'black' && piece.search(/^b/) === -1) || 
+        game_ended
+    );
 }
 
 
 function onDrop (source, target, piece, newPos, oldPos, orientation) {
-    if (source == target) return 'snapback' 
+    if ((source == target) || game_ended ) return 'snapback'
 
     // see if the move is legal
     console.log(game.ascii());
@@ -122,7 +126,7 @@ function onDrop (source, target, piece, newPos, oldPos, orientation) {
 
 
     if (api_result.game_end){
-        board_elem.style.display = 'none';
+        game_ended = true
         countdown_elem.style.display = 'none'; // hide countdown
 
 
