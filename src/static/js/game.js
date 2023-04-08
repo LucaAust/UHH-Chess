@@ -6,6 +6,7 @@ var countdown_elem;
 var countdown_id;
 var countdown_time = 30;
 var curr_countdown_time = 30;
+var curr_redirect_countdown_time = 10;
 var game = new chessjs.Chess(current_fen || chessjs.DEFAULT_POSITION);
 
 
@@ -107,7 +108,6 @@ function onDrop (source, target, piece, newPos, oldPos, orientation) {
     
     console.log("move: " + api_result.move);
     if (api_result.move){
-
         let ki_move = game.move({
             from: api_result.move[0],
             to: api_result.move[1],
@@ -123,16 +123,34 @@ function onDrop (source, target, piece, newPos, oldPos, orientation) {
 
     if (api_result.game_end){
         board_elem.style.display = 'none';
-        countdown_elem.style.display = 'none';
+        countdown_elem.style.display = 'none'; // hide countdown
+
 
         if (api_result.redirect_to){
-            window.location = api_result.redirect_to;
+            // show redirect text
+            let game_end_hint_elem = document.getElementById('game_end_hint');
+            game_end_hint_elem.innerHTML = 'Spiel beendet.<br>Sie werden in <span id="redirect_countdown">'+curr_redirect_countdown_time+'</span> Sekunden weitergeleitet.<br>Alternativ klicken Sie auf folgenden Link:<br><br><a href="'+api_result.redirect_to+'">'+api_result.redirect_to+'</a>'
+            board_elem.classList.add('greyscale');
+            document.getElementById('game-end-hint-container').style.display = 'block';
+
+
+            setInterval(function() {redirect_countdown(api_result.redirect_to)}, 1000);
+            console.log("api_result.redirect_to: " + api_result.redirect_to);
         }else{
             document.getElementById('redirect_error').display = 'block';
         }
     }
 
     create_countdown();
+}
+
+function redirect_countdown(redirect_to){
+    document.getElementById('redirect_countdown').innerText = curr_redirect_countdown_time
+    curr_redirect_countdown_time--;
+
+    if (curr_redirect_countdown_time <= 0){
+        window.location = redirect_to;
+    }
 }
 
 function onSnapEnd(){
