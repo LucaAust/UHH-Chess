@@ -177,10 +177,8 @@ class Stockfish():
         )
 
         log.debug(f"res: {res}")
-        self.board = chess.Board()
 
         #  make shure the white player starts
-        print(f"Black turn: {self.board.turn == BLACK}")
         if self.board.turn == BLACK:
             self.chess.Move.null()
 
@@ -188,10 +186,7 @@ class Stockfish():
             if set_fen:
                 # do each move to detect some end rules
                 for curr_move in await self._get_all_moves():
-                    print(curr_move)
                     self.board.push(curr_move)
-
-                    print(self.board)
             return fen
 
         return ""
@@ -308,7 +303,7 @@ class Stockfish():
                 json.dump(game_data, file, indent=4, ensure_ascii=False, default=json_serial)
         except Exception:
             log.exception(traceback.format_exc())
-            log.exception(f"Save game data Failed! Token: {self.token}")
+            log.error(f"Save game data Failed! Token: {self.token}")
 
     async def _ki_move(self) -> Tuple[chess.Move, bool]:
         """Run KI move.
@@ -331,7 +326,7 @@ class Stockfish():
         Returns:
             dict: KI move, game end.
         """
-        print(self.board)
+        log.debug(self.board)
         self.last_interaction = datetime.now()
         data = (await request.json()).get('data')
         log.debug(f"data: {data}")
@@ -371,7 +366,7 @@ class Stockfish():
             ki_move, game_end_ki = await self._ki_move()
             result['move'] = (SQUARE_NAMES[ki_move.from_square], SQUARE_NAMES[ki_move.to_square])
 
-        # save the move avter evaluation to have a later timestamp
+        # save the move after evaluation to have a later timestamp
         # and the user has nearly the draw time of 30 seconds
         # save user move
         await self._save_move(
