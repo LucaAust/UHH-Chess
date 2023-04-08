@@ -27,6 +27,7 @@ CREATE TABLE chess.moves (
 	new_fen VARCHAR(100) NOT NULL,
 	old_fen VARCHAR(100) NOT NULL,
 	piece CHAR(2) NULL,
+	promotion_symbol CHAR NULL;	 -- ALTER TABLE chess.moves ADD promotion_symbol CHAR NULL;    Use CHAR to allow later an easy change from queen(currently the default and only possible) to other
 	t_stamp TIMESTAMP(3) DEFAULT NOW(3) NOT NULL,
 	CONSTRAINT NewTable_FK FOREIGN KEY (game_id) REFERENCES chess.games(id) ON DELETE CASCADE
 )

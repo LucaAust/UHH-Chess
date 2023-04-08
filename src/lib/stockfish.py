@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import Request
 import chess
 import chess.engine
-from chess import BLACK, SQUARE_NAMES, COLOR_NAMES
+from chess import BLACK, SQUARE_NAMES, COLOR_NAMES, piece_symbol, PIECE_SYMBOLS
 from fastapi.responses import JSONResponse
 
 from src import log
@@ -83,14 +83,14 @@ class Stockfish():
         if res.get('start'):
             self.start = res['start']
 
-    async def _save_move(self, game_id: str, source: str, target: str, piece: str, old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None) -> None:
+    async def _save_move(self, game_id: str, source: str, target: str, piece: str, old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None, promotion_symbol: PIECE_SYMBOLS = None) -> None:
 
         res =  await self.sql_conn.query("""
             INSERT INTO chess.moves
-                (game_id, source, target, old_fen, new_fen, piece, t_stamp)
+                (game_id, source, target, old_fen, new_fen, piece, promotion_symbol, t_stamp)
             VALUES
                 (
-                    %(game_id)s, %(source)s, %(target)s, %(old_fen)s, %(new_fen)s, %(piece)s, NOW(3)
+                    %(game_id)s, %(source)s, %(target)s, %(old_fen)s, %(new_fen)s, %(piece)s, %(promotion_symbol)s, NOW(3)
                 )
             RETURNING 
                 t_stamp + INTERVAL 1 DAY AS t_stamp; 
@@ -103,6 +103,7 @@ class Stockfish():
                 'old_fen': old_fen,
                 'new_fen': new_fen,
                 'piece': piece,
+                'promotion_symbol': promotion_symbol,
                 't_stamp': timestamp.strftime(TIMESTAMP_FORMAT)[:3] if timestamp else None,
             },
             first=True,
@@ -111,7 +112,7 @@ class Stockfish():
     async def _get_all_moves(self) -> Tuple[chess.Move]:
         res = await self.sql_conn.query("""
             SELECT
-                moves.source, moves.target
+                moves.source, moves.target, moves.promotion_symbol
             FROM
                 chess.moves
             RIGHT JOIN
@@ -132,7 +133,8 @@ class Stockfish():
             moves.append(
                 chess.Move(
                     chess.parse_square(entry['source']),
-                    chess.parse_square(entry['target'])
+                    chess.parse_square(entry['target']),
+                    promotion=PIECE_SYMBOLS.index(entry['promotion_symbol'])
                 )
             )
             
@@ -337,9 +339,11 @@ class Stockfish():
             return JSONResponse({'error': True, 'info': "Missing data!"}, status_code=500)
 
         try:
-            user_move = chess.Move.from_uci(f"{data['source']}{data['target']}")
+            user_move = chess.Move.from_uci(f"{data['source']}{data['target']}{'q' if data['promotion'] else ''}")
         except ValueError:
             return {'error': True, 'info': "Null move!"}
+        except Exception:
+            print(traceback.format_exc())
 
         log.debug(f"promotion: {user_move.promotion}")
         log.debug(f"move: {user_move}")
@@ -377,6 +381,7 @@ class Stockfish():
             old_fen=user_old_fen,
             new_fen=user_new_fen,
             timestamp=datetime.now(),
+            promotion_symbol=piece_symbol(user_move.promotion) if user_move.promotion else None  # user promotion currently only 'q'
         )
 
         if not result['game_end']:
@@ -389,6 +394,7 @@ class Stockfish():
                 old_fen=ki_old_fen,
                 new_fen=self.board.fen(),
                 timestamp=datetime.now(),
+                promotion_symbol=piece_symbol(ki_move.promotion) if ki_move.promotion else None # ki promotion can be every possible piece
             )
             result['game_end'] = game_end_ki or result['game_end']
 

@@ -68,7 +68,7 @@ function onDragStart(source, piece, position, orientation) {
     // disable black side moving and after game end
     return !(
         (orientation === 'white' && piece.search(/^w/) === -1) ||
-        (orientation === 'black' && piece.search(/^b/) === -1) || 
+        (orientation === 'black' && piece.search(/^b/) === -1) ||
         game_ended
     );
 }
@@ -79,7 +79,14 @@ function onDrop (source, target, piece, newPos, oldPos, orientation) {
 
     // see if the move is legal
     console.log(game.ascii());
+    let _is_promotion = is_promotion({
+        chess: game,
+        move: {from: source, to: target}
+    });
+    console.log("_is_promotion: "+_is_promotion);
+
     let game_old_fen = game.fen()
+    console.log(game);
     let move = game.move({
         from: source,
         to: target,
@@ -87,29 +94,31 @@ function onDrop (source, target, piece, newPos, oldPos, orientation) {
     });
     
     console.log(game.ascii());
+
     // illegal move
     if (move === null) return 'snapback';
     
     let data = {
-    'source': source,
-    'target': target,
-    'piece': piece,
-    'new_fen': game.fen(),
-    'old_fen': game_old_fen,
+        'source': source,
+        'target': target,
+        'piece': piece,
+        'new_fen': game.fen(),
+        'old_fen': game_old_fen,
+        'promotion': _is_promotion ? 'q' : null,
     }
 
-    // board.position(data.new_fen);
     let api_result = api.put('\\move\\'+api.getCookie('token'), data);
     console.log(api_result);
 
     if (api_result.error){
-    console.log(api_result.info + " Reset to old FEN!");
-    console.log(target + '-' +  source);
-    board.move(target + '-' + source, false);
+        console.log(api_result.info + " Reset to old FEN!");
+        console.log(target + '-' +  source);
+        board.move(target + '-' + source, false);
 
-    return 'snapback';
+        return 'snapback';
     }
     
+
     console.log("move: " + api_result.move);
     if (api_result.move){
         let ki_move = game.move({
@@ -123,7 +132,6 @@ function onDrop (source, target, piece, newPos, oldPos, orientation) {
 
     console.log("game.fen(): " + game.fen());
     updateStatus(game);
-
 
     if (api_result.game_end){
         game_ended = true
@@ -146,6 +154,26 @@ function onDrop (source, target, piece, newPos, oldPos, orientation) {
     }
 
     create_countdown();
+}
+
+// works only for WHITE
+function is_promotion(cfg) {
+    var piece = cfg.chess.get(cfg.move.from);
+    if (
+        cfg.chess.turn() == 'w' && // check white
+        cfg.move.from.charAt(1) == 7 && // check if is move from column 7
+        cfg.move.to.charAt(1) == 8 && // check if is move to column 8
+        piece.type == 'p' && // check piece type
+        piece.color == 'w' // check piece color
+    ){
+
+        // check for valid promotion move
+        if (chessjs.Chess(game.fen()).move({from: cfg.move.from, to: cfg.move.to, promotion: 'q'})) {
+                return true;
+        } else {
+                return false;
+        }
+    }
 }
 
 function redirect_countdown(redirect_to){
