@@ -247,9 +247,10 @@ class Stockfish():
 
         outcome = self.board.outcome()
         log.debug(f"outcome: {outcome}")
+
         args = {
             'end_reasons': outcome.termination.name if outcome else self.end_reason,
-            'winner': COLOR_NAMES[outcome.winner] if outcome else "",
+            'winner': COLOR_NAMES[outcome.winner] if outcome and outcome.winner else "",
             'token': self.token
         }
 
