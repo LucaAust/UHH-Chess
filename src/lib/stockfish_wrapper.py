@@ -22,7 +22,7 @@ class StockfishWrapper():
         self.stockfish_path = self.config['stockfish']['path']
         self.stockfish_log_path = Path(__file__).parent.parent.joinpath('log', 'stockfish_debug.log')
         
-        self.add_elo_points = self.config['stockfish'].getint('add_elo_points', 400)
+        self.reduce_elo_points = self.config['stockfish'].getint('reduce_elo_points', 400)
         self.cpu_threads = psutil.cpu_count()
 
         self.sql_conn = sql_conn
@@ -58,7 +58,7 @@ class StockfishWrapper():
         return await self._new_instance(**game_info)
 
     async def _get_UCI_params(self, user_elo):
-        elo = user_elo + self.add_elo_points
+        elo = user_elo - self.reduce_elo_points
         if elo < 1349:
             log.info(f"Target ELO '{elo}' is to small! Auto set to 1350")
             elo = 1350
@@ -104,7 +104,7 @@ class StockfishWrapper():
                 (%(ki_elo)s ,%(user_elo)s, %(user_id)s, %(redirect_url)s, %(game_number)s, (SELECT first_game_start WHERE id = %(old_game_id)s))
             RETURNING token, id AS game_id, user_elo, redirect_url, game_number, first_game_start;
         """,
-        {'user_id': user_id, 'user_elo': elo, 'ki_elo': elo - self.increase_elo_points, 'redirect_url': redirect_url, 'game_number': game_number, 'old_game_id': old_game_id},
+        {'user_id': user_id, 'user_elo': elo, 'ki_elo': elo - self.reduce_elo_points, 'redirect_url': redirect_url, 'game_number': game_number, 'old_game_id': old_game_id},
         first=True
         )
 
