@@ -1,9 +1,10 @@
 import logging
-from configparser import ConfigParser
 from typing import Union
 from pathlib import Path
+from configparser import ConfigParser
 
 import psutil
+
 from src.lib.stockfish import Stockfish
 from src.lib.sql import SQL
 
@@ -35,14 +36,14 @@ class StockfishWrapper():
         """Check if enough RAM is available to start a new Stockfish instace.
 
         Raises:
-            MemoryError: _description_
+            MemoryError: Rais if free RAM < 512 MB
         """
         if psutil.virtual_memory().available / 1024 / 1024 < 512:
             raise MemoryError("Not enough memmory to create a new Stockfish instance!")
 
     async def _get_game_info(self, token: str):
         return await self.sql_conn.query(
-            "SELECT id AS game_id, user_elo, token FROM games WHERE token = %(token)s AND stop = 0;",
+            "SELECT id AS game_id, user_elo, token, redirect_url, game_number, first_game_start FROM games WHERE token = %(token)s AND stop IS NULL",
             {'token': token}, 
             first=True,
         )
@@ -53,14 +54,6 @@ class StockfishWrapper():
         log.debug(f"game_info: {repr(game_info)}")
         if not game_info:
             return None
-
-        # return existing instance
-        #if instance := self.instances.get(token, False):
-        #    return instance
-
-        # crate new instance
-        # self.instances[token] = await self._new_instance(**game_info)
-        #return self.instances[token]
 
         return await self._new_instance(**game_info)
 
@@ -81,7 +74,7 @@ class StockfishWrapper():
                     'Hash': self.config['stockfish'].getint('hash'),
                 }
 
-    async def _new_instance(self, token: str, game_id: int, user_elo: int):
+    async def _new_instance(self, token: str, game_id: int, user_elo: int, first_game_start, redirect_url: str | None, game_number: int | None):
         await self.check_ram()
 
         return await Stockfish(
@@ -91,7 +84,9 @@ class StockfishWrapper():
             game_id=game_id,
             engine_options=await self._get_UCI_params(user_elo),
             depth=self.depth,
-            redirect_to=self.config['game']['redirect_to'],
+            redirect_url=redirect_url,
+            game_number=game_number,
+            first_game_start=first_game_start,
         )
 
 
@@ -100,28 +95,21 @@ class StockfishWrapper():
         log.debug(f"Stockfish instances to delete: {to_delete}")
         for key in to_delete:
             del self.instances[key]
-                
 
-    async def new(self, elo: int, user_id: str) -> Stockfish:
-
+    async def new(self, elo: int, user_id: str, redirect_url: str | None, game_number: int | None, old_game_id = None) -> Stockfish:
         res = await self.sql_conn.query("""
             INSERT INTO games
-                (ki_elo, user_elo, user_id)
+                (ki_elo, user_elo, user_id, redirect_url, game_number, first_game_start)
             VALUES
-                (%(ki_elo)s ,%(user_elo)s, %(user_id)s)
-            RETURNING token, id AS game_id, user_elo;
+                (%(ki_elo)s ,%(user_elo)s, %(user_id)s, %(redirect_url)s, %(game_number)s, (SELECT first_game_start WHERE id = %(old_game_id)s))
+            RETURNING token, id AS game_id, user_elo, redirect_url, game_number, first_game_start;
         """,
-        {'user_id': user_id, 'user_elo': elo, 'ki_elo': elo + self.add_elo_points},
+        {'user_id': user_id, 'user_elo': elo, 'ki_elo': elo - self.increase_elo_points, 'redirect_url': redirect_url, 'game_number': game_number, 'old_game_id': old_game_id},
         first=True
         )
 
         if not res:
             raise Exception(f"Could not create new game!")
-
-        # await self._clear_instances()
-
+        
         print(res)
-        ## self.instances[res['token']] = await self._new_instance(**res)
-
-        # return self.instances[res['token']]
         return await self._new_instance(**res)

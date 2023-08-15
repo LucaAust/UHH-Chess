@@ -138,16 +138,25 @@ function onDrop (source, target, piece, newPos, oldPos, orientation) {
         countdown_elem.style.display = 'none'; // hide countdown
 
 
-        if (api_result.redirect_to){
+        if (api_result.redirect_url){
+            board_elem.classList.add('greyscale');
+
+            if (api_result.new_game_number){
+                let redirect = '/new/'+api_result.user_id + '/' + api_result.user_elo + 
+                '?redirect_url=' + api_result.redirect_url + '&old_game_id=' + api_result.game_id + 
+                '&game_number=' + api_result.new_game_number;
+                console.log("redirect: " + redirect);
+                window.location = redirect;
+            }
+
             // show redirect text
             let game_end_hint_elem = document.getElementById('game_end_hint');
-            game_end_hint_elem.innerHTML = 'Spiel beendet.<br>Sie werden in <span id="redirect_countdown">'+curr_redirect_countdown_time+'</span> Sekunden weitergeleitet.<br>Alternativ klicken Sie auf folgenden Link:<br><br><a href="'+api_result.redirect_to+'">'+api_result.redirect_to+'</a>'
-            board_elem.classList.add('greyscale');
+            game_end_hint_elem.innerHTML = 'Spiel beendet.<br>Sie werden in <span id="redirect_countdown">'+curr_redirect_countdown_time+'</span> Sekunden weitergeleitet.<br>Alternativ klicken Sie auf folgenden Link:<br><br><a href="'+api_result.redirect_url+'">'+api_result.redirect_url+'</a>'
+            
             document.getElementById('game-end-hint-container').style.display = 'block';
 
-
-            setInterval(function() {redirect_countdown(api_result.redirect_to)}, 1000);
-            console.log("api_result.redirect_to: " + api_result.redirect_to);
+            setInterval(function() {redirect_countdown(api_result.redirect_url)}, 1000);
+            console.log("api_result.redirect_url: " + api_result.redirect_url);
         }else{
             document.getElementById('redirect_error').display = 'block';
         }
@@ -176,12 +185,12 @@ function is_promotion(cfg) {
     }
 }
 
-function redirect_countdown(redirect_to){
+function redirect_countdown(redirect_url){
     document.getElementById('redirect_countdown').innerText = curr_redirect_countdown_time
     curr_redirect_countdown_time--;
 
     if (curr_redirect_countdown_time <= 0){
-        window.location = redirect_to;
+        window.location = redirect_url;
     }
 }
 

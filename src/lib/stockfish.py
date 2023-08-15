@@ -1,3 +1,4 @@
+from configparser import NoOptionError, NoSectionError
 import logging
 import json
 import traceback
@@ -11,7 +12,7 @@ import chess.engine
 from chess import BLACK, SQUARE_NAMES, COLOR_NAMES, piece_symbol, PIECE_SYMBOLS
 from fastapi.responses import JSONResponse
 
-from src import log
+from src import log, config
 from src.lib.constants import TIMESTAMP_FORMAT, GAME_DATA_SAVE_DIR
 from src.lib.helper import json_serial
 from src.lib.sql import SQL
@@ -21,8 +22,9 @@ log = logging.getLogger()
 
 class Stockfish():
     async def __init__(self, path: str, token: str, sql_conn: SQL, game_id: int, 
-        depth: int = 20, nodes: int = None, redirect_to: Union[str, None] = None,
-        max_user_draw_time: float = 30.0,  engine_options = None) -> None:
+        depth: int = 20, nodes: int = None, redirect_url: str | None = None,
+        max_user_draw_time: float = 30.0,  engine_options = None, game_number: int | None = None,
+        first_game_start: datetime | None = datetime.now() ) -> None:
 
         self.stop = False
         self.start = datetime.now()
@@ -32,10 +34,12 @@ class Stockfish():
         self.board = chess.Board()
         self.game_id = game_id
         self.end_reason = "Unkown (Default value)"
+        self.first_game_start = first_game_start
         self.token = token
         self.sql_conn = sql_conn
 
-        self.redirect_to = redirect_to
+        self.redirect_url = redirect_url
+        self.game_number = game_number
         self.max_user_draw_time = max_user_draw_time
         self.thinking_time = chess.engine.Limit(
             time=0.1,
@@ -83,21 +87,20 @@ class Stockfish():
         if res.get('start'):
             self.start = res['start']
 
-    async def _save_move(self, game_id: str, source: str, target: str, piece: str, old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None, promotion_symbol: PIECE_SYMBOLS = None) -> None:
-
-        res =  await self.sql_conn.query("""
+    async def _save_move(self, source: str, target: str, piece: str, old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None, promotion_symbol: PIECE_SYMBOLS = None) -> None:
+        await self.sql_conn.query("""
             INSERT INTO chess.moves
                 (game_id, source, target, old_fen, new_fen, piece, promotion_symbol, t_stamp)
             VALUES
                 (
-                    %(game_id)s, %(source)s, %(target)s, %(old_fen)s, %(new_fen)s, %(piece)s, %(promotion_symbol)s, NOW(3)
+                    (SELECT id FROM games WHERE token = %(token)s), %(source)s, %(target)s, %(old_fen)s, %(new_fen)s, %(piece)s, %(promotion_symbol)s, NOW(3)
                 )
             RETURNING 
-                t_stamp + INTERVAL 1 DAY AS t_stamp; 
+                t_stamp + INTERVAL 1 DAY AS t_stamp;
 
             """,
             {
-                'game_id': int(game_id),
+                'token': self.token,
                 'source': source,
                 'target': target,
                 'old_fen': old_fen,
@@ -219,11 +222,11 @@ class Stockfish():
         return 0
 
     async def _check_game_end(self):
-        self.end_reason = "Max game time (20min) reached!"
+        # self.end_reason = "Max game time reached!"
         return {
             "outcome": self.board.is_game_over(),
             "move_timeout": await self._get_move_duration() > self.max_user_draw_time + 10,
-            "total_timeout": datetime.now() - self.start > timedelta(minutes=20)
+            "total_timeout": datetime.now() - self.first_game_start > timedelta(minutes=20)
         }
 
     async def check_game_end(self) -> bool:
@@ -256,7 +259,6 @@ class Stockfish():
                 UPDATE games SET
                     end_reasons = %(end_reasons)s,
                     winning_color = %(winner)s,
-                    token = NULL,
                     stop = NOW()
                 WHERE
                     token = %(token)s
@@ -273,6 +275,7 @@ class Stockfish():
             SELECT
                 start, stop,
                 user_elo, ki_elo,
+                game_number,
                 user_id, end_reasons,
                 winning_color,
                 source, target,
@@ -292,10 +295,16 @@ class Stockfish():
             {'game_id': self.game_id}
         )
 
-        if not GAME_DATA_SAVE_DIR.exists():
-            GAME_DATA_SAVE_DIR.mkdir(parents=True)
+        user_id = game_data[-1]['user_id']
+        try:
+            output_dir = config.get('game', 'data_save_dir')
+        except (NoOptionError, NoSectionError):
+            output_dir = GAME_DATA_SAVE_DIR
 
-        file_path = GAME_DATA_SAVE_DIR  / f"{game_data[-1]['user_id']}_{self.game_id}_{self.token}.json"
+        output_dir = Path(output_dir) / f"{user_id}"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        file_path = output_dir  / f"{user_id}_{game_data[-1]['game_number']}_{self.token}.json"
         log.info(f"Save game data to: {file_path.absolute()}")
 
         try:
@@ -316,11 +325,16 @@ class Stockfish():
 
         return (ki_move, await self.check_game_end())
 
-    async def move(self, request: Request, game_id: int) -> dict:
+    async def _delete_token(self):
+        """Set game token in db to NULL
+        """
+        await self.sql_conn.query("UPDATE games SET token = %(token)s", {'token': self.token})
+
+    async def move(self, request: Request) -> dict:
         """Validate the move and save the results in the database.
 
         Args:
-            request (Request): Current API request. 
+            request (Request): Current API request.
             game_id (int): Game ID.
 
         Returns:
@@ -355,50 +369,77 @@ class Stockfish():
         self.board.push(user_move)
         user_new_fen = self.board.fen()
 
-        result = {
-            'game_end': await self.check_game_end(),
-        }
+        try:
+            result = {
+                'game_end': await self.check_game_end(),
+            }
 
-        ki_old_fen = self.board.fen()
-        game_end_ki = False
-        if not result['game_end']:
-            # KI move
-            ki_move, game_end_ki = await self._ki_move()
-            result['move'] = (SQUARE_NAMES[ki_move.from_square], SQUARE_NAMES[ki_move.to_square])
+            ki_old_fen = self.board.fen()
+            game_end_ki = False
+            if not result['game_end']:
+                # KI move
+                ki_move, game_end_ki = await self._ki_move()
+                result['move'] = (SQUARE_NAMES[ki_move.from_square], SQUARE_NAMES[ki_move.to_square])
 
-        # save the move after evaluation to have a later timestamp
-        # and the user has nearly the draw time of 30 seconds
-        # save user move
-        await self._save_move(
-            game_id=game_id,
-            source=data['source'],
-            target=data['target'],
-            piece=data['piece'],
-            old_fen=user_old_fen,
-            new_fen=user_new_fen,
-            timestamp=datetime.now(),
-            promotion_symbol=piece_symbol(user_move.promotion) if user_move.promotion else None  # user promotion currently only 'q'
-        )
-
-        if not result['game_end']:
-            # save KI move
+            # save the move after evaluation to have a later timestamp
+            # and the user has nearly the draw time of 30 seconds
+            # save user move
             await self._save_move(
-                game_id=game_id,
-                source=SQUARE_NAMES[ki_move.from_square],
-                target=SQUARE_NAMES[ki_move.to_square],
-                piece=None,
-                old_fen=ki_old_fen,
-                new_fen=self.board.fen(),
+                source=data['source'],
+                target=data['target'],
+                piece=data['piece'],
+                old_fen=user_old_fen,
+                new_fen=user_new_fen,
                 timestamp=datetime.now(),
-                promotion_symbol=piece_symbol(ki_move.promotion) if ki_move.promotion else None # ki promotion can be every possible piece
+                promotion_symbol=piece_symbol(user_move.promotion) if user_move.promotion else None  # user promotion currently only 'q'
             )
-            result['game_end'] = game_end_ki or result['game_end']
 
-        if result['game_end']:
-            result['redirect_to'] = self.redirect_to
-            self.stop = True
-            log.info("Close current Stockfish instance")
-            self.engine.close() 
+            if not result['game_end']:
+                # save KI move
+                await self._save_move(
+                    source=SQUARE_NAMES[ki_move.from_square],
+                    target=SQUARE_NAMES[ki_move.to_square],
+                    piece=None,
+                    old_fen=ki_old_fen,
+                    new_fen=self.board.fen(),
+                    timestamp=datetime.now(),
+                    promotion_symbol=piece_symbol(ki_move.promotion) if ki_move.promotion else None # ki promotion can be every possible piece
+                )
+                result['game_end'] = game_end_ki or result['game_end']
 
-        log.debug(result)
+            if result['game_end']:
+                if datetime.now() - self.first_game_start > timedelta(minutes=20):
+                    result['redirect_url'] = self.redirect_url
+                    self.stop = True
+                    log.info("Close current Stockfish instance")
+                    self.engine.close()
+                else:
+                    result = await self.sql_conn.query(
+                        """
+                        SELECT 
+                            id as game_id,
+                            game_number + 1 as new_game_number,
+                            first_game_start,
+                            redirect_url,
+                            user_id,
+                            user_elo,
+                            (SELECT TRUE) as game_end
+                        FROM 
+                            games
+                        WHERE
+                            token = %(token)s;
+                        """, {'token': self.token},
+                        first=True
+                    )
+
+                    print(result)
+                    # result['game_end'] = True
+
+                await self._delete_token()
+
+            log.debug(result)
+            return result
+        except Exception:
+            log.exception(traceback.format_exc())
+
         return result

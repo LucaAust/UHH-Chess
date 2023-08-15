@@ -13,8 +13,12 @@ CREATE TABLE chess.games (
 	ki_elo INT UNSIGNED NOT NULL,
 	user_id varchar(100) NOT NULL,
 	end_reasons VARCHAR(100) DEFAULT NULL NULL,
-	winning_color VARCHAR(100) NULL
+	winning_color VARCHAR(100) NULL,
+	first_game_start TIMESTAMP DEFAULT NOW() NOT NULL,
+	redirect_url varchar(255) NOT NULL,
+	game_number INT NOT NULL DEFAULT 0
 )
+
 ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_german2_ci;
@@ -27,10 +31,11 @@ CREATE TABLE chess.moves (
 	new_fen VARCHAR(100) NOT NULL,
 	old_fen VARCHAR(100) NOT NULL,
 	piece CHAR(2) NULL,
-	promotion_symbol CHAR NULL;	 -- ALTER TABLE chess.moves ADD promotion_symbol CHAR NULL;    Use CHAR to allow later an easy change from queen(currently the default and only possible) to other
+	promotion_symbol CHAR NULL,	 -- ALTER TABLE chess.moves ADD promotion_symbol CHAR NULL;    Use CHAR to allow later an easy change from queen(currently the default and only possible) to other
 	t_stamp TIMESTAMP(3) DEFAULT NOW(3) NOT NULL,
 	CONSTRAINT NewTable_FK FOREIGN KEY (game_id) REFERENCES chess.games(id) ON DELETE CASCADE
 )
 ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_german2_ci;
+

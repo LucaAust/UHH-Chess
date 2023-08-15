@@ -51,7 +51,7 @@ templates = Jinja2Templates(directory=Path(src_path, 'templates'))
 try:
     constants.GAME_DATA_SAVE_DIR = Path(config['game']['data_save_dir'])
     constants.GAME_DATA_SAVE_DIR.mkdir(parents=True, exist_ok=True)
-    log.info(f"Game data output director: {constants.GAME_DATA_SAVE_DIR.absolute()}")
+    log.info(f"Game data output dir: {constants.GAME_DATA_SAVE_DIR.absolute()}")
 except Exception:
     pass
 
@@ -63,11 +63,11 @@ except Exception:
     pass
 
 sql_conn = SQL(
-     database=config['database']['name'],
-     user=config['database']['user'],
-     password=config['database']['password'],
-     port=config['database'].getint('port'),
-     host=config['database'].get('host'),
+    database=config['database']['name'],
+    user=config['database']['user'],
+    password=config['database']['password'],
+    port=config['database'].getint('port'),
+    host=config['database'].get('host'),
 )
 sql_conn.connect()
 
