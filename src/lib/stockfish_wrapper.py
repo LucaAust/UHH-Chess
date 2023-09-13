@@ -101,7 +101,7 @@ class StockfishWrapper():
             INSERT INTO games
                 (ki_elo, user_elo, user_id, redirect_url, game_number, first_game_start)
             VALUES
-                (%(ki_elo)s ,%(user_elo)s, %(user_id)s, %(redirect_url)s, %(game_number)s, (SELECT first_game_start WHERE id = %(old_game_id)s))
+                (%(ki_elo)s ,%(user_elo)s, %(user_id)s, %(redirect_url)s, %(game_number)s, (SELECT first_game_start WHERE id = %(old_game_id)s) OR NULL)
             RETURNING token, id AS game_id, user_elo, redirect_url, game_number, first_game_start;
         """,
         {'user_id': user_id, 'user_elo': elo, 'ki_elo': elo - self.reduce_elo_points, 'redirect_url': redirect_url, 'game_number': game_number, 'old_game_id': old_game_id},
