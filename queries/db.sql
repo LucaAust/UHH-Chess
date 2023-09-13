@@ -16,7 +16,7 @@ CREATE TABLE chess.games (
 	winning_color VARCHAR(100) NULL,
 	first_game_start TIMESTAMP DEFAULT NOW() NOT NULL,
 	redirect_url varchar(255) NOT NULL,
-	game_number INT NOT NULL DEFAULT 0
+	game_number INT NULL
 )
 
 ENGINE=InnoDB
