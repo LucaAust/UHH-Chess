@@ -10,17 +10,18 @@ log = logging.getLogger()
 
 
 @app.get('/start/{user_id}/{user_elo}', response_class=HTMLResponse)
-async def index(request: Request, user_id: str, user_elo: int, redirect_url: str | None, game_number: int | None):
+async def index(request: Request, user_id: str, user_elo: int, redirect_url: str | None, game_number: int = 0):
+    # /start/USER_ID/ELO?redirect_url=REDIRECT_URL
     log.debug(f"redirect_url: {redirect_url}")
     log.debug(f"game_number: {game_number}")
 
     return templates.TemplateResponse(
         "start.html", 
-        {'request': request, 'start_game_path': f'/new/{user_id}/{user_elo}?redirect_url={redirect_url}&game_number={game_number}'}
+        {'request': request, 'start_game_path': f'/new/{user_id}/{user_elo}?game_number={game_number}&redirect_url={redirect_url}'}
     )
 
 @app.get('/new/{user_id}/{user_elo}', response_class=HTMLResponse)
-async def new_game(request: Request, user_id: str, user_elo: int, redirect_url: str | None, game_number: int | None, old_game_id: Union[int, None] = None):
+async def new_game(request: Request, user_id: str, user_elo: int, redirect_url: str | None, game_number: int = 0, old_game_id: Union[int, None] = None):
     game = await stockfish_instances.new(user_elo, user_id, redirect_url, game_number, old_game_id)
     log.debug(f"Created new game: {game}")
 

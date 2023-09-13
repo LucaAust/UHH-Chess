@@ -32,7 +32,6 @@ document.addEventListener("DOMContentLoaded", function() {
     $(window).resize(board.resize);
     create_countdown()
     updateStatus(game);
-
 })
 
 function updateStatus(game){
