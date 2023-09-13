@@ -230,8 +230,9 @@ class Stockfish():
         end_results = await self._check_game_end()
         log.debug(f"end_results: {end_results}")
         if any(end_results.values()):
-            print(self.board.is_game_over())
             print("Game Ends! Saving reason..")
+            if end_results['total_timeout']:
+                self.end_reason = f"Total timeout of {self.max_game_time}min reached"
             await self._save_end_reason()
             return True
 
