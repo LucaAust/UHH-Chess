@@ -35,6 +35,7 @@ class Stockfish():
         self.game_id = game_id
         self.end_reason = "Unkown (Default value)"
         self.first_game_start = first_game_start
+        self.max_game_time = 20  # in minutes
         self.token = token
         self.sql_conn = sql_conn
 
@@ -95,8 +96,6 @@ class Stockfish():
                 (
                     (SELECT id FROM games WHERE token = %(token)s), %(source)s, %(target)s, %(old_fen)s, %(new_fen)s, %(piece)s, %(promotion_symbol)s, NOW(3)
                 )
-            RETURNING 
-                t_stamp + INTERVAL 1 DAY AS t_stamp;
 
             """,
             {
@@ -109,7 +108,6 @@ class Stockfish():
                 'promotion_symbol': promotion_symbol,
                 't_stamp': timestamp.strftime(TIMESTAMP_FORMAT)[:3] if timestamp else None,
             },
-            first=True,
         )
 
     async def _get_all_moves(self) -> Tuple[chess.Move]:
@@ -408,7 +406,7 @@ class Stockfish():
                 result['game_end'] = game_end_ki or result['game_end']
 
             if result['game_end']:
-                if datetime.now() - self.first_game_start > timedelta(minutes=20):
+                if datetime.now() - self.first_game_start > timedelta(minutes=self.max_game_time):
                     result['redirect_url'] = self.redirect_url
                     self.stop = True
                     log.info("Close current Stockfish instance")
