@@ -18,10 +18,11 @@ CREATE TABLE chess.games (
 	redirect_url varchar(255) NOT NULL,
 	game_number INT NULL
 )
-
 ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_german2_ci;
+
+ALTER TABLE chess.games MODIFY stop TIMESTAMP NULL;
 
 
 CREATE TABLE chess.moves (
