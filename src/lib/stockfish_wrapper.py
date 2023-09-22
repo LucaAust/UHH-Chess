@@ -112,7 +112,7 @@ class StockfishWrapper():
             """,
             {
                 'user_id': user_id, 'user_elo': elo, 'ki_elo': elo - self.reduce_elo_points, 'redirect_url': redirect_url, 
-                'game_number': game_number, 'first_game_start': first_game_start,
+                'game_number': game_number, 'first_game_start': first_game_start or None,
             },
             first=True
         )
