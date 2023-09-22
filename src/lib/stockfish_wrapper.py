@@ -97,22 +97,16 @@ class StockfishWrapper():
             del self.instances[key]
 
     async def new(self, elo: int, user_id: str, redirect_url: str | None, game_number: int | None, old_game_id = None) -> Stockfish:
-        first_game_start = await self.sql_conn.query(
-            """SELECT first_game_start FROM games WHERE id = %(old_game_id)s""",
-            {'old_game_id': old_game_id},
-            first=True
-        )
-        
         res = await self.sql_conn.query("""
                 INSERT INTO games
                     (ki_elo, user_elo, user_id, redirect_url, game_number, first_game_start)
                 VALUES
-                    (%(ki_elo)s ,%(user_elo)s, %(user_id)s, %(redirect_url)s, %(game_number)s, %(first_game_start)s OR NULL)
+                    (%(ki_elo)s ,%(user_elo)s, %(user_id)s, %(redirect_url)s, %(game_number)s, (SELECT g.first_game_start FROM games as g WHERE g.id = %(old_game_id)s) )
                 RETURNING token, id AS game_id, user_elo, redirect_url, game_number, first_game_start;
             """,
             {
                 'user_id': user_id, 'user_elo': elo, 'ki_elo': elo - self.reduce_elo_points, 'redirect_url': redirect_url, 
-                'game_number': game_number, 'first_game_start': first_game_start or None,
+                'game_number': game_number, 'old_game_id': old_game_id,
             },
             first=True
         )
