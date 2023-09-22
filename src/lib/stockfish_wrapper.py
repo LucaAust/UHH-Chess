@@ -98,7 +98,7 @@ class StockfishWrapper():
 
     async def new(self, elo: int, user_id: str, redirect_url: str | None, game_number: int | None, old_game_id = None) -> Stockfish:
         first_game_start = await self.sql_conn.query(
-            """SELECT first_game_start WHERE id = %(old_game_id)s)""",
+            """SELECT first_game_start FROM games WHERE id = %(old_game_id)s""",
             {'old_game_id': old_game_id},
             first=True
         )
