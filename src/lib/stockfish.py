@@ -305,6 +305,14 @@ class Stockfish():
         file_path = output_dir  / f"{user_id}_{game_data[-1]['game_number']}_{self.token}.json"
         log.info(f"Save game data to: {file_path.absolute()}")
 
+        for i in range(1 ,len(game_data)):
+            game_data[i]['overdrawn'] = False
+            prev_draw_ts = game_data[i-1]['t_stamp']
+            cur_draw_ts = game_data[i]['t_stamp']
+            if prev_draw_ts + timedelta(seconds=self.max_user_draw_time) < cur_draw_ts:
+                game_data[i]['overdrawn'] = True
+
+
         try:
             with open(file_path, 'w+') as file:
                 json.dump(game_data, file, indent=4, ensure_ascii=False, default=json_serial)
