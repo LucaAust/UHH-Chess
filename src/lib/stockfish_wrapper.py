@@ -57,7 +57,7 @@ class StockfishWrapper():
 
         return await self._new_instance(**game_info)
 
-    async def _get_UCI_params(self, user_elo):
+    async def _calc_engine_elo(self, user_elo):
         elo = user_elo - self.reduce_elo_points
         if elo < 1349:
             log.info(f"Target ELO '{elo}' is to small! Auto set to 1350")
@@ -66,9 +66,10 @@ class StockfishWrapper():
             log.info(f"Target ELO '{elo}' is to large! Auto set to 2850")
             elo = 2850
 
+    async def _get_UCI_params(self, user_elo: int):
         return {
                     'UCI_LimitStrength': self.config['stockfish'].getboolean('UCI_LimitStrength'),
-                    'UCI_Elo': elo,
+                    'UCI_Elo': await self._calc_engine_elo(user_elo),
                     'Slow Mover': self.config['stockfish'].getint('Slow_Mover'),
                     'Threads': self.cpu_threads,
                     'Hash': self.config['stockfish'].getint('hash'),
@@ -105,7 +106,7 @@ class StockfishWrapper():
                 RETURNING token, id AS game_id, user_elo, redirect_url, game_number, first_game_start;
             """,
             {
-                'user_id': user_id, 'user_elo': elo, 'ki_elo': elo - self.reduce_elo_points, 'redirect_url': redirect_url, 
+                'user_id': user_id, 'user_elo': elo, 'ki_elo': await self._calc_engine_elo(elo), 'redirect_url': redirect_url, 
                 'game_number': game_number, 'old_game_id': old_game_id,
             },
             first=True
