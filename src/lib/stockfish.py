@@ -319,6 +319,9 @@ class Stockfish():
 
             game_data[i]['draw_time'] = round(draw_time.total_seconds(), 3)
 
+        user_move_count = len(user_draw_times)
+        game_data[-1]['user_move_count'] = user_move_count
+
         try:
             with open(file_path, 'w+') as file:
                 json.dump(game_data, file, indent=4, ensure_ascii=False, default=json_serial)
