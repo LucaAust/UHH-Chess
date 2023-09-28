@@ -318,9 +318,15 @@ class Stockfish():
             draw_time: timedelta = cur_draw_ts - prev_draw_ts
 
             game_data[i]['draw_time'] = round(draw_time.total_seconds(), 3)
+            user_draw_times.append(
+                draw_time
+            )
 
         user_move_count = len(user_draw_times)
         game_data[-1]['user_move_count'] = user_move_count
+        game_data[-1]['avg_move_duration'] = round(
+            (sum(user_draw_times, timedelta()) / user_move_count).total_seconds(), 3
+        )
 
         try:
             with open(file_path, 'w+') as file:
