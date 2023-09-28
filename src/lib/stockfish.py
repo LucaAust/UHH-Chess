@@ -305,13 +305,19 @@ class Stockfish():
         file_path = output_dir  / f"{user_id}_{game_data[-1]['game_number']}_{self.token}.json"
         log.info(f"Save game data to: {file_path.absolute()}")
 
-        for i in range(1 ,len(game_data)):
+        user_draw_times = []
+        for i in range(0 ,len(game_data)):
+            # check if move tooks more than self.max_user_draw_time
             game_data[i]['overdrawn'] = False
-            prev_draw_ts = game_data[i-1]['t_stamp']
+            prev_draw_ts = game_data[i-1]['t_stamp'] if not i == 0 else game_data[0]['start']
             cur_draw_ts = game_data[i]['t_stamp']
             if prev_draw_ts + timedelta(seconds=self.max_user_draw_time) < cur_draw_ts:
                 game_data[i]['overdrawn'] = True
 
+            # get move duration
+            draw_time: timedelta = cur_draw_ts - prev_draw_ts
+
+            game_data[i]['draw_time'] = round(draw_time.total_seconds(), 3)
 
         try:
             with open(file_path, 'w+') as file:
