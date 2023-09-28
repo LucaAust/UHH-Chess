@@ -66,6 +66,8 @@ class StockfishWrapper():
             log.info(f"Target ELO '{elo}' is to large! Auto set to 2850")
             elo = 2850
 
+        return elo
+
     async def _get_UCI_params(self, user_elo: int):
         return {
                     'UCI_LimitStrength': self.config['stockfish'].getboolean('UCI_LimitStrength'),
