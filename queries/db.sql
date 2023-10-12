@@ -34,6 +34,7 @@ CREATE TABLE chess.moves (
 	piece CHAR(2) NULL,
 	promotion_symbol CHAR NULL,	 -- ALTER TABLE chess.moves ADD promotion_symbol CHAR NULL;    Use CHAR to allow later an easy change from queen(currently the default and only possible) to other
 	t_stamp TIMESTAMP(3) DEFAULT NOW(3) NOT NULL,
+	castling VARCHAR(128) DEFAULT NULL,  -- ALTER TABLE chess.moves ADD castling varchar(100) NULL;
 	CONSTRAINT NewTable_FK FOREIGN KEY (game_id) REFERENCES chess.games(id) ON DELETE CASCADE
 )
 ENGINE=InnoDB

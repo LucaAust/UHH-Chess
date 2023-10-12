@@ -91,10 +91,10 @@ class Stockfish():
     async def _save_move(self, source: str, target: str, piece: str, old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None, promotion_symbol: PIECE_SYMBOLS = None) -> None:
         await self.sql_conn.query("""
             INSERT INTO chess.moves
-                (game_id, source, target, old_fen, new_fen, piece, promotion_symbol, t_stamp)
+                (game_id, source, target, old_fen, new_fen, piece, promotion_symbol, t_stamp, castling)
             VALUES
                 (
-                    (SELECT id FROM games WHERE token = %(token)s), %(source)s, %(target)s, %(old_fen)s, %(new_fen)s, %(piece)s, %(promotion_symbol)s, NOW(3)
+                    (SELECT id FROM games WHERE token = %(token)s), %(source)s, %(target)s, %(old_fen)s, %(new_fen)s, %(piece)s, %(promotion_symbol)s, NOW(3), %(castling)s
                 )
 
             """,
@@ -104,6 +104,7 @@ class Stockfish():
                 'target': target,
                 'old_fen': old_fen,
                 'new_fen': new_fen,
+                'castling': await self.get_castling(old_fen, new_fen),
                 'piece': piece,
                 'promotion_symbol': promotion_symbol,
                 't_stamp': timestamp.strftime(TIMESTAMP_FORMAT)[:3] if timestamp else None,
@@ -351,6 +352,38 @@ class Stockfish():
         """
         await self.sql_conn.query("UPDATE games SET token = %(token)s", {'token': self.token})
 
+    @staticmethod
+    async def get_castling(fen1: str, fen2: str) -> str:
+        """Get castling notation.
+
+        https://de.wikipedia.org/wiki/Forsyth-Edwards-Notation#Rochaderechte-Kodierung
+
+        Args:
+            fen1 (str): FEN before move.
+            fen2 (str): FEN after move.
+
+        Returns:
+            str: Castle notation
+        """
+
+        # Extract the castling information
+        castling1 = fen1.split()[2]
+        castling2 = fen2.split()[2]
+
+        castling_notation = ""
+
+        if 'K' in castling1 and 'K' not in castling2:
+            castling_notation += "0-0 "
+        if 'Q' in castling1 and 'Q' not in castling2:
+            castling_notation += "0-0-0 "
+        if 'k' in castling1 and 'k' not in castling2:
+            castling_notation += "0-0 "
+        if 'q' in castling1 and 'q' not in castling2:
+            castling_notation += "0-0-0 "
+
+        return castling_notation.strip()
+
+
     async def move(self, request: Request) -> dict:
         """Validate the move and save the results in the database.
 
@@ -397,6 +430,7 @@ class Stockfish():
 
             ki_old_fen = self.board.fen()
             game_end_ki = False
+
             if not result['game_end']:
                 # KI move
                 ki_move, game_end_ki = await self._ki_move()
