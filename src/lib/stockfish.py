@@ -26,9 +26,7 @@ class Stockfish():
         max_user_draw_time: float = 30.0,  engine_options = None, game_number: int | None = None,
         first_game_start: datetime | None = datetime.now() ) -> None:
 
-        self.stop = False
         self.start = datetime.now()
-        self.last_interaction = datetime.now()
         self.engine = chess.engine.SimpleEngine.popen_uci(str(path))
 
         self.board = chess.Board()
@@ -61,6 +59,7 @@ class Stockfish():
 
 
     async def close(self):
+        """Stop and close engine."""
         if self.engine:
             self.engine.close()
 
@@ -70,10 +69,12 @@ class Stockfish():
         return instance
 
     async def _load_existing_game_data(self):
+        """Load existing game data into current instance."""
         await self.load_fen()
         await self._load_existing_start_time()
 
     async def _load_existing_start_time(self):
+        """Load game start time."""
         res = await self.sql_conn.query("""
             SELECT
                 start
@@ -93,6 +94,18 @@ class Stockfish():
             self,source: str, target: str, piece: Union[Piece, None], 
             old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None, promotion_symbol: PIECE_SYMBOLS = None
             ) -> None:
+        """Insert move into database.
+
+        Arguments:
+            source(str): Move source field
+            target(str): Move target field
+            piece(Union[Piece, None]): Moved piece. If None it will be calculated by old_fen and new_fen.
+            old_fen(str): FEN before move
+            new_fen(str): FEN after move
+            timestamp(Union[datetime, None]): date and time of move. Defaults to None.
+            promotion_symbol(chess.PIECE_SYMBOLS): Symbol of promotion, Defaults to None.
+
+        """
         if piece is None:
             piece = chess.Board(old_fen).piece_at(chess.parse_square(source))
 
@@ -126,6 +139,12 @@ class Stockfish():
         )
 
     async def _get_all_moves(self) -> Tuple[chess.Move]:
+        """Load all moves from database
+
+        Returns:
+            Tuple[chess.Move]: List of moves
+
+        """
         res = await self.sql_conn.query("""
             SELECT
                 moves.source, moves.target, moves.promotion_symbol
@@ -155,14 +174,6 @@ class Stockfish():
             )
             
         return moves
-
-    async def should_deleted(self) -> bool:
-        """Check if this instance sould be deleted.
-
-        Returns:
-            bool: Schould be deleted.
-        """
-        return self.stop or (datetime.now() - self.last_interaction).total_seconds() >  60 * 5
 
     async def load_fen(self, set_fen: bool = True) -> str:
         """Load the latest FEN from database.
@@ -235,6 +246,11 @@ class Stockfish():
         return 0
 
     async def get_end_results(self) -> Dict[str, bool]:
+        """Check the game end conditions
+
+        Returns:
+            Dict[str, bool]: Checked conditions with result
+        """
         return {
             "outcome": self.board.is_game_over(),
             #"move_timeout": await self._get_move_duration() > self.max_user_draw_time + 10,
@@ -242,7 +258,12 @@ class Stockfish():
         }
 
     async def check_game_end(self) -> bool:
-        end_results = await self._check_game_end()
+        """Check if the game is finished. If yes then the data will be written to the output file
+
+        Returns:
+            bool: Game finished
+        """
+        end_results = await self.get_end_results()
         log.debug(f"end_results: {end_results}")
 
         if any(end_results.values()):
@@ -257,6 +278,7 @@ class Stockfish():
         return False
 
     async def _save_end_reason(self):
+        """Save the end reason with player color (only if there is a winner)"""
         log.debug(f"self.board.outcome(): {self.board.outcome()}")
 
         outcome = self.board.outcome()
@@ -269,7 +291,6 @@ class Stockfish():
         }
 
         log.debug(f"args: {args}")
-
         # insert game end reason and remove token to disable loading
         res = await self.sql_conn.query("""
                 UPDATE games SET
@@ -311,6 +332,13 @@ class Stockfish():
         )
 
     async def calc_game_data(self) -> List:
+        """Load and calculate data wich must be stored in the output file.
+
+        Calculated entries: draw_time, overdrawn, move_number, user_move_count, avg_move_duration
+
+        Returns:
+            List: _description_
+        """
         game_data = await self._load_game_output_data()
         user_draw_times = []
 
@@ -379,7 +407,7 @@ class Stockfish():
             log.error(f"Save game data Failed! Token: {self.token}")
 
     async def _ki_move(self) -> chess.Move:
-        """Run KI move.
+        """Run engine move and write to database.
 
         Returns:
             Tuple[chess.Move, bool]: KI move and whether the game was finished. 
@@ -402,8 +430,7 @@ class Stockfish():
         return ki_move
 
     async def _delete_token(self):
-        """Set game token in db to NULL
-        """
+        """Set game token in db to NULL"""
         await self.sql_conn.query("UPDATE games SET token = %(token)s", {'token': self.token})
 
     @staticmethod
@@ -495,7 +522,7 @@ class Stockfish():
             game_id (int): Game ID.
 
         Returns:
-            dict: KI move, game end.
+            dict: Engine move and game end.
         """
         data = (await request.json()).get('data')
         log.debug(f"data: {data}")
