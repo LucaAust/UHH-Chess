@@ -89,6 +89,9 @@ class Stockfish():
             self.start = res['start']
 
     async def _save_move(self, source: str, target: str, piece: Piece, old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None, promotion_symbol: PIECE_SYMBOLS = None) -> None:
+        if piece is None:
+            piece = chess.Board(old_fen).piece_at(chess.parse_square(source))
+
         await self.sql_conn.query("""
             INSERT INTO chess.moves
                 (game_id, source, target, old_fen, new_fen, piece, promotion_symbol, t_stamp, castling, color)
