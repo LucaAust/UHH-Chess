@@ -447,7 +447,7 @@ class Stockfish():
             await self._save_move(
                 source=data['source'],
                 target=data['target'],
-                piece=data['piece'],
+                piece=Piece.from_symbol(data['piece'][-1]),
                 old_fen=user_old_fen,
                 new_fen=user_new_fen,
                 timestamp=datetime.now(),
