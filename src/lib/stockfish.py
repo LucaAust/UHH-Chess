@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import Request
 import chess
 import chess.engine
-from chess import BLACK, SQUARE_NAMES, COLOR_NAMES, piece_symbol, PIECE_SYMBOLS
+from chess import BLACK, SQUARE_NAMES, COLOR_NAMES, PIECE_SYMBOLS, Piece, piece_symbol, square_file
 from fastapi.responses import JSONResponse
 
 from src import log, config
