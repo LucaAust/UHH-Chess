@@ -523,7 +523,7 @@ class Stockfish():
             result['move'] = (SQUARE_NAMES[ki_move.from_square], SQUARE_NAMES[ki_move.to_square])
 
         try:
-
+            result['game_end'] = await self.check_game_end() or result['game_end']
 
             if result['game_end']:
                 if datetime.now() - self.first_game_start > timedelta(minutes=self.max_game_time):
