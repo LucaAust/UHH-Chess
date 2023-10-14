@@ -48,5 +48,5 @@ class SQL:
             except mariadb.ProgrammingError:
                 return {'rowcount': conn.rowcount}
 
-        log.debug(f"DB result: {result}")
+        # log.debug(f"DB result: {result}")
         return result
