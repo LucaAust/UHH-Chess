@@ -91,10 +91,10 @@ class Stockfish():
     async def _save_move(self, source: str, target: str, piece: Piece, old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None, promotion_symbol: PIECE_SYMBOLS = None) -> None:
         await self.sql_conn.query("""
             INSERT INTO chess.moves
-                (game_id, source, target, old_fen, new_fen, piece, promotion_symbol, t_stamp, castling)
+                (game_id, source, target, old_fen, new_fen, piece, promotion_symbol, t_stamp, castling, color)
             VALUES
                 (
-                    (SELECT id FROM games WHERE token = %(token)s), %(source)s, %(target)s, %(old_fen)s, %(new_fen)s, %(piece)s, %(promotion_symbol)s, NOW(3), %(castling)s
+                    (SELECT id FROM games WHERE token = %(token)s), %(source)s, %(target)s, %(old_fen)s, %(new_fen)s, %(piece)s, %(promotion_symbol)s, NOW(3), %(castling)s, %(color)s
                 )
 
             """,
@@ -112,6 +112,7 @@ class Stockfish():
                     )
                 ),
                 'piece': piece.symbol(),
+                'color': COLOR_NAMES[piece.color],
                 'promotion_symbol': promotion_symbol,
                 't_stamp': timestamp.strftime(TIMESTAMP_FORMAT)[:3] if timestamp else None,
             },
@@ -286,7 +287,7 @@ class Stockfish():
                 source, target,
                 new_fen, old_fen,
                 piece,t_stamp,
-                castling
+                castling, color
             FROM
                 games
             INNER JOIN
