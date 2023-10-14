@@ -285,7 +285,8 @@ class Stockfish():
                 winning_color,
                 source, target,
                 new_fen, old_fen,
-                piece,t_stamp
+                piece,t_stamp,
+                castling
             FROM
                 games
             INNER JOIN
