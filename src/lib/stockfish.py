@@ -88,7 +88,7 @@ class Stockfish():
         if res.get('start'):
             self.start = res['start']
 
-    async def _save_move(self, source: str, target: str, piece: str, old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None, promotion_symbol: PIECE_SYMBOLS = None) -> None:
+    async def _save_move(self, source: str, target: str, piece: Piece, old_fen: str, new_fen: str, timestamp: Union[datetime, None] = None, promotion_symbol: PIECE_SYMBOLS = None) -> None:
         await self.sql_conn.query("""
             INSERT INTO chess.moves
                 (game_id, source, target, old_fen, new_fen, piece, promotion_symbol, t_stamp, castling)
@@ -104,8 +104,14 @@ class Stockfish():
                 'target': target,
                 'old_fen': old_fen,
                 'new_fen': new_fen,
-                'castling': await self.get_castling(old_fen, new_fen),
-                'piece': piece,
+                'castling': await self.get_castling(
+                    old_fen=old_fen,
+                    move = chess.Move(
+                        chess.parse_square(source),
+                        chess.parse_square(target),
+                    )
+                ),
+                'piece': piece.symbol(),
                 'promotion_symbol': promotion_symbol,
                 't_stamp': timestamp.strftime(TIMESTAMP_FORMAT)[:3] if timestamp else None,
             },
@@ -353,35 +359,27 @@ class Stockfish():
         await self.sql_conn.query("UPDATE games SET token = %(token)s", {'token': self.token})
 
     @staticmethod
-    async def get_castling(fen1: str, fen2: str) -> str:
+    async def get_castling(old_fen: str, move: chess.Move) -> str:
         """Get castling notation.
 
         https://de.wikipedia.org/wiki/Forsyth-Edwards-Notation#Rochaderechte-Kodierung
 
         Args:
-            fen1 (str): FEN before move.
-            fen2 (str): FEN after move.
+            old_fen (str): FEN before move.
+            fen2 (chess.Move): Current move.
 
         Returns:
             str: Castle notation
         """
+        
 
-        # Extract the castling information
-        castling1 = fen1.split()[2]
-        castling2 = fen2.split()[2]
+        if chess.Board(old_fen).is_castling(move):
+            if square_file(move.to_square) > square_file(move.from_square):  # kingside castling move
+                return '0-0'
+            elif square_file(move.to_square) < square_file(move.from_square):  # queenside castling move
+                return '0-0-0'
 
-        castling_notation = ""
-
-        if 'K' in castling1 and 'K' not in castling2:
-            castling_notation += "0-0 "
-        if 'Q' in castling1 and 'Q' not in castling2:
-            castling_notation += "0-0-0 "
-        if 'k' in castling1 and 'k' not in castling2:
-            castling_notation += "0-0 "
-        if 'q' in castling1 and 'q' not in castling2:
-            castling_notation += "0-0-0 "
-
-        return castling_notation.strip()
+        return ''
 
 
     async def move(self, request: Request) -> dict:
