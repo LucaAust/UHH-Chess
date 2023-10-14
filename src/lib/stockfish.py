@@ -330,6 +330,8 @@ class Stockfish():
                 draw_time
             )
 
+            game_data[i]['move_number'] = i + 1
+
         user_move_count = len(user_draw_times)
         game_data[-1]['user_move_count'] = user_move_count
         game_data[-1]['avg_move_duration'] = round(
