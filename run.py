@@ -9,7 +9,7 @@ log = logging.getLogger()
 
 def main(**kwargs):
     log.debug(kwargs)
-    log.info(f"Start new game at: {Color.BOLD}{Color.GREEN}http://0.0.0.0:8000/new/example/1285{Color.END*2}")
+    log.info(f"Start new game at: {Color.BOLD}{Color.GREEN}http://0.0.0.0:8000/start/example/1285?redirect_url=https://www.startpage.com/{Color.END*2}")
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 
