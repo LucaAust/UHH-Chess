@@ -513,7 +513,7 @@ class Stockfish():
             timestamp=datetime.now(),
             promotion_symbol=piece_symbol(user_move.promotion) if user_move.promotion else None  # user promotion currently only 'Q'
         )
-        
+
     async def move(self, request: Request) -> dict:
         """Validate the move and save the results in the database.
 
