@@ -9,10 +9,11 @@ stockfish = "*"
 fastapi = "*"
 jinja2 = "*"
 uvicorn = "*"
-mariadb = "*"
+mariadb = "==1.1.5"
 psutil = "*"
 python-chess = "*"
 gunicorn = "*"
+pydantic-settings = "*"
 
 [dev-packages]
 
