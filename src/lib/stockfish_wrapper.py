@@ -22,7 +22,8 @@ class StockfishWrapper():
         self.stockfish_path = self.config['stockfish']['path']
         self.stockfish_log_path = Path(__file__).parent.parent.joinpath('log', 'stockfish_debug.log')
         
-        self.reduce_elo_points = self.config['stockfish'].getint('reduce_elo_points', 400)
+        self.calc_elo_points = self.config['stockfish'].getint('elo_points', 400)
+        self.elo_point_subtract = self.config['stockfish'].getboolean('elo_point_subtract', False)
         self.cpu_threads = psutil.cpu_count()
 
         self.sql_conn = sql_conn
@@ -58,7 +59,11 @@ class StockfishWrapper():
         return await self._new_instance(**game_info)
 
     async def _calc_engine_elo(self, user_elo):
-        elo = user_elo - self.reduce_elo_points
+        if self.elo_point_subtract:
+            elo = user_elo - self.calc_elo_points
+        else:
+            elo = user_elo + self.calc_elo_points
+
         if elo < 1349:
             log.info(f"Target ELO '{elo}' is to small! Auto set to 1350")
             elo = 1350
