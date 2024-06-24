@@ -150,7 +150,7 @@ function onDrop (source, target, piece, newPos, oldPos, orientation) {
 
             // show redirect text
             let game_end_hint_elem = document.getElementById('game_end_hint');
-            game_end_hint_elem.innerHTML = 'Spiel beendet.<br>Sie werden in <span id="redirect_countdown">'+curr_redirect_countdown_time+'</span> Sekunden weitergeleitet.<br>Alternativ klicken Sie auf folgenden Link:<br><br><a href="'+api_result.redirect_url+'">'+api_result.redirect_url+'</a>'
+            game_end_hint_elem.innerHTML = 'The game is finished.<br>You will be redirected in <span id="redirect_countdown">'+curr_redirect_countdown_time+'</span> seconds.<br>In the case of an error, please click on the following link:<br><br><a href="'+api_result.redirect_url+'">'+api_result.redirect_url+'</a>'
             
             document.getElementById('game-end-hint-container').style.display = 'block';
 
